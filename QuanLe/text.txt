@@ -1,1 +1,1 @@
-test
+done issue UserStory 2: Create Wireframes for HAMKConnect #7
