@@ -4,6 +4,7 @@ on: # This action will trigger when an issue is reopened or opened.
     types:
       - reopened
       - opened
+      - closed
 jobs: # The jobs that run in this workflow
   label_issues: # the first job is named as label_issues
     runs-on: ubuntu-latest # This job will run on the latest version of Ubuntu.
@@ -28,11 +29,6 @@ jobs: # The jobs that run in this workflow
            #Thanks for opening this issue! We'll take a look as soon as possible.
 
 # Comment on when an issue is closed
-on:
-  issues:
-    types: [closed]
-
-jobs:
   comment:
     runs-on: ubuntu-latest
     steps:
@@ -43,7 +39,7 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '👋 The issue is now resolved!'
+              body: '👋 The issue is now closed!'
             })
 
 # Comment on when an users opens the first pull request 
