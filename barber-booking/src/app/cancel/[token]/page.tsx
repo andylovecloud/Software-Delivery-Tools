@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { vi as viLocale } from 'date-fns/locale';
 
@@ -10,26 +10,27 @@ interface BookingInfo {
   status: string;
 }
 
-export default function CancelPage({ params }: { params: { token: string } }) {
+export default function CancelPage({ params }: { params: Promise<{ token: string }> }) {
+  const resolvedParams = React.use(params);
   const [booking, setBooking] = useState<BookingInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
   const [result, setResult] = useState<{ success?: boolean; error?: string } | null>(null);
 
   useEffect(() => {
-    fetch(`/api/cancel/${params.token}`)
+    fetch(`/api/cancel/${resolvedParams.token}`)
       .then(r => r.json())
       .then(d => {
         setBooking(d.booking || null);
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [params.token]);
+  }, [resolvedParams.token]);
 
   async function handleCancel() {
     setCancelling(true);
     try {
-      const res = await fetch(`/api/cancel/${params.token}`, { method: 'POST' });
+      const res = await fetch(`/api/cancel/${resolvedParams.token}`, { method: 'POST' });
       const data = await res.json();
       if (res.ok) {
         setResult({ success: true });

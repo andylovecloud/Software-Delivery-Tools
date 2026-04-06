@@ -6,13 +6,14 @@ import { vi as viLocale } from 'date-fns/locale';
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { token: string } }
+  { params }: { params: Promise<{ token: string }> }
 ) {
+  const { token } = await params;
   const db = supabaseAdmin();
   const { data: booking } = await db
     .from('bookings')
     .select('customer_name, appointment_date, appointment_hour, status')
-    .eq('cancel_token', params.token)
+    .eq('cancel_token', token)
     .maybeSingle();
 
   if (!booking) {
@@ -23,13 +24,14 @@ export async function GET(
 
 export async function POST(
   _request: NextRequest,
-  { params }: { params: { token: string } }
+  { params }: { params: Promise<{ token: string }> }
 ) {
+  const { token } = await params;
   const db = supabaseAdmin();
   const { data: booking } = await db
     .from('bookings')
     .select('*')
-    .eq('cancel_token', params.token)
+    .eq('cancel_token', token)
     .eq('status', 'confirmed')
     .maybeSingle();
 
