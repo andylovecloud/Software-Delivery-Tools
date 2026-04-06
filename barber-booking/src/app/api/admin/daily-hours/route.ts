@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (!validHourRange(Number(start_hour), Number(end_hour))) {
-    return NextResponse.json({ error: 'Giờ bắt đầu/kết thúc không hợp lệ' }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid start/end hour range' }, { status: 400 });
   }
 
   const db = supabaseAdmin();

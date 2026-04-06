@@ -1,7 +1,6 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { format } from 'date-fns';
-import { vi as viLocale } from 'date-fns/locale';
 
 interface BookingInfo {
   customer_name: string;
@@ -39,23 +38,23 @@ export default function CancelPage({ params }: { params: Promise<{ token: string
         setResult({ error: data.error });
       }
     } catch {
-      setResult({ error: 'Có lỗi xảy ra, vui lòng thử lại.' });
+      setResult({ error: 'Something went wrong. Please try again.' });
     } finally {
       setCancelling(false);
     }
   }
 
   if (loading) {
-    return <div className="text-center p-12 text-gray-400">Đang tải...</div>;
+    return <div className="text-center p-12 text-gray-400">Loading...</div>;
   }
 
   if (!booking) {
     return (
       <main className="max-w-md mx-auto px-4 py-12 text-center">
         <div className="text-6xl mb-4">❌</div>
-        <h1 className="text-xl font-semibold text-gray-800">Không tìm thấy lịch hẹn</h1>
-        <p className="text-gray-500 mt-2 text-sm">Link đã hết hạn hoặc không hợp lệ.</p>
-        <a href="/" className="text-blue-600 mt-4 block">← Đặt lịch mới</a>
+        <h1 className="text-xl font-semibold text-gray-800">Booking not found</h1>
+        <p className="text-gray-500 mt-2 text-sm">This link is invalid or has expired.</p>
+        <a href="/" className="text-blue-600 mt-4 block">← Book a new appointment</a>
       </main>
     );
   }
@@ -63,23 +62,23 @@ export default function CancelPage({ params }: { params: Promise<{ token: string
   const dateObj = new Date(
     `${booking.appointment_date}T${String(booking.appointment_hour).padStart(2, '0')}:00:00`
   );
-  const appointmentStr = format(dateObj, "EEEE, dd/MM/yyyy 'lúc' HH:mm", { locale: viLocale });
+  const appointmentStr = format(dateObj, 'EEEE, dd/MM/yyyy HH:mm');
 
   return (
     <main className="max-w-md mx-auto px-4 py-12">
       <div className="bg-white rounded-2xl shadow p-8 text-center">
         <div className="text-5xl mb-4">✂️</div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Hủy lịch hẹn</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Cancel appointment</h1>
         <p className="text-gray-600 mb-2">
-          Khách hàng: <strong>{booking.customer_name}</strong>
+          Customer: <strong>{booking.customer_name}</strong>
         </p>
         <p className="text-gray-600 mb-6 capitalize">
-          Thời gian: <strong>{appointmentStr}</strong>
+          Time: <strong>{appointmentStr}</strong>
         </p>
 
         {booking.status === 'cancelled' || result?.success ? (
           <div className="bg-green-50 border border-green-200 text-green-700 rounded-xl p-4">
-            ✅ Lịch hẹn đã được hủy thành công.
+            ✅ Your appointment has been cancelled.
           </div>
         ) : result?.error ? (
           <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4">
@@ -88,21 +87,21 @@ export default function CancelPage({ params }: { params: Promise<{ token: string
         ) : (
           <>
             <p className="text-sm text-gray-500 mb-6">
-              Bạn có chắc muốn hủy lịch hẹn này không?
+              Are you sure you want to cancel this appointment?
               <br />
-              <span className="text-orange-500">⚠️ Chỉ được hủy trước 2 tiếng.</span>
+              <span className="text-orange-500">⚠️ Cancellations are allowed up to 2 hours before the appointment.</span>
             </p>
             <button
               onClick={handleCancel}
               disabled={cancelling}
               className="w-full bg-red-500 text-white py-3 rounded-xl font-semibold hover:bg-red-600 disabled:opacity-50 transition"
             >
-              {cancelling ? 'Đang hủy...' : '🗑️ Xác nhận hủy lịch'}
+              {cancelling ? 'Cancelling...' : '🗑️ Confirm cancellation'}
             </button>
           </>
         )}
         <a href="/" className="text-blue-600 text-sm mt-6 block hover:underline">
-          ← Đặt lịch mới
+          ← Book a new appointment
         </a>
       </div>
     </main>

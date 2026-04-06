@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { sendCancellationEmails, sendWhatsApp } from '@/lib/notifications';
 import { format } from 'date-fns';
-import { vi as viLocale } from 'date-fns/locale';
 
 export async function GET(
   _request: NextRequest,
@@ -17,7 +16,7 @@ export async function GET(
     .maybeSingle();
 
   if (!booking) {
-    return NextResponse.json({ error: 'Không tìm thấy lịch hẹn' }, { status: 404 });
+    return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
   }
   return NextResponse.json({ booking });
 }
@@ -37,7 +36,7 @@ export async function POST(
 
   if (!booking) {
     return NextResponse.json(
-      { error: 'Không tìm thấy lịch hẹn hoặc lịch đã bị hủy' },
+      { error: 'Booking not found or already cancelled' },
       { status: 404 }
     );
   }
@@ -51,7 +50,7 @@ export async function POST(
 
   if (diffHours < 2) {
     return NextResponse.json(
-      { error: 'Không thể hủy lịch trong vòng 2 tiếng trước giờ hẹn' },
+      { error: 'Cannot cancel within 2 hours of the appointment time' },
       { status: 400 }
     );
   }
@@ -63,17 +62,17 @@ export async function POST(
     .eq('id', booking.id);
 
   if (error) {
-    return NextResponse.json({ error: 'Không thể hủy lịch, vui lòng thử lại' }, { status: 500 });
+    return NextResponse.json({ error: 'Unable to cancel booking. Please try again.' }, { status: 500 });
   }
 
   // Notify (fire-and-forget)
   const dateObj = new Date(
     `${booking.appointment_date}T${String(booking.appointment_hour).padStart(2, '0')}:00:00`
   );
-  const appointmentStr = format(dateObj, "EEEE dd/MM/yyyy 'lúc' HH:mm", { locale: viLocale });
+  const appointmentStr = format(dateObj, 'EEEE dd/MM/yyyy HH:mm');
 
   void sendCancellationEmails(booking);
-  void sendWhatsApp(`❌ Hủy lịch: ${booking.customer_name} - ${appointmentStr}`);
+  void sendWhatsApp(`❌ Cancellation: ${booking.customer_name} - ${appointmentStr}`);
 
   return NextResponse.json({ success: true });
 }

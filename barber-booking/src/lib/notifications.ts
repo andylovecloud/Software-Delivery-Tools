@@ -1,12 +1,11 @@
 import { Resend } from 'resend';
 import { format } from 'date-fns';
-import { vi as viLocale } from 'date-fns/locale';
 
 const getResend = () => new Resend(process.env.RESEND_API_KEY);
 
 function formatAppointment(date: string, hour: number): string {
   const d = new Date(`${date}T${String(hour).padStart(2, '0')}:00:00`);
-  return format(d, "EEEE, dd/MM/yyyy 'lúc' HH:mm", { locale: viLocale });
+  return format(d, 'EEEE, dd/MM/yyyy HH:mm');
 }
 
 interface BookingNotificationData {
@@ -34,14 +33,14 @@ export async function sendBookingEmails(booking: BookingNotificationData): Promi
     await resend.emails.send({
       from: process.env.FROM_EMAIL!,
       to: process.env.BARBER_EMAIL!,
-      subject: `📅 Lịch mới: ${booking.customer_name} - ${appointmentStr}`,
+      subject: `📅 New booking: ${booking.customer_name} - ${appointmentStr}`,
       html: `
-        <h2>Bạn có lịch hẹn mới!</h2>
-        <p><strong>Khách hàng:</strong> ${booking.customer_name}</p>
-        <p><strong>Thời gian:</strong> ${appointmentStr}</p>
+        <h2>You have a new appointment!</h2>
+        <p><strong>Customer:</strong> ${booking.customer_name}</p>
+        <p><strong>Time:</strong> ${appointmentStr}</p>
         ${booking.customer_email ? `<p><strong>Email:</strong> ${booking.customer_email}</p>` : ''}
         <hr/>
-        <p><a href="${cancelUrl}">Hủy lịch này</a></p>
+        <p><a href="${cancelUrl}">Cancel this appointment</a></p>
       `,
     });
   } catch (e) {
@@ -54,13 +53,13 @@ export async function sendBookingEmails(booking: BookingNotificationData): Promi
       await resend.emails.send({
         from: process.env.FROM_EMAIL!,
         to: booking.customer_email,
-        subject: `✅ Xác nhận lịch cắt tóc - ${appointmentStr}`,
+        subject: `✅ Booking confirmation - ${appointmentStr}`,
         html: `
-          <h2>Lịch hẹn của bạn đã được xác nhận!</h2>
-          <p><strong>Thời gian:</strong> ${appointmentStr}</p>
-          <p>Nếu bạn muốn hủy lịch, vui lòng nhấn vào link bên dưới <strong>trước 2 tiếng</strong>:</p>
-          <p><a href="${cancelUrl}">🗑️ Hủy lịch hẹn</a></p>
-          <p style="color:#888;font-size:12px;">Link hủy: ${cancelUrl}</p>
+          <h2>Your appointment is confirmed!</h2>
+          <p><strong>Time:</strong> ${appointmentStr}</p>
+          <p>If you need to cancel, use the link below at least <strong>2 hours</strong> before the appointment:</p>
+          <p><a href="${cancelUrl}">🗑️ Cancel appointment</a></p>
+          <p style="color:#888;font-size:12px;">Cancellation link: ${cancelUrl}</p>
         `,
       });
     } catch (e) {
@@ -77,8 +76,8 @@ export async function sendCancellationEmails(booking: CancellationNotificationDa
     await resend.emails.send({
       from: process.env.FROM_EMAIL!,
       to: process.env.BARBER_EMAIL!,
-      subject: `❌ Hủy lịch: ${booking.customer_name} - ${appointmentStr}`,
-      html: `<p><strong>${booking.customer_name}</strong> đã hủy lịch hẹn vào <strong>${appointmentStr}</strong>.</p>`,
+      subject: `❌ Cancellation: ${booking.customer_name} - ${appointmentStr}`,
+      html: `<p><strong>${booking.customer_name}</strong> cancelled the appointment at <strong>${appointmentStr}</strong>.</p>`,
     });
   } catch (e) {
     console.error('Failed to send barber cancellation email:', e);
@@ -89,8 +88,8 @@ export async function sendCancellationEmails(booking: CancellationNotificationDa
       await resend.emails.send({
         from: process.env.FROM_EMAIL!,
         to: booking.customer_email,
-        subject: `❌ Lịch hẹn đã được hủy - ${appointmentStr}`,
-        html: `<p>Lịch hẹn của bạn vào <strong>${appointmentStr}</strong> đã được hủy thành công.</p><p><a href="${process.env.NEXT_PUBLIC_BASE_URL}">Đặt lịch mới</a></p>`,
+        subject: `❌ Appointment cancelled - ${appointmentStr}`,
+        html: `<p>Your appointment at <strong>${appointmentStr}</strong> has been cancelled successfully.</p><p><a href="${process.env.NEXT_PUBLIC_BASE_URL}">Book a new appointment</a></p>`,
       });
     } catch (e) {
       console.error('Failed to send customer cancellation email:', e);

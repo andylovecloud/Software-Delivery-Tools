@@ -1,7 +1,6 @@
 'use client';
 import { useState, useCallback } from 'react';
 import { format } from 'date-fns';
-import { vi as viLocale } from 'date-fns/locale';
 
 interface Booking {
   id: string;
@@ -29,7 +28,7 @@ interface DailyWorkingHours {
   note: string | null;
 }
 
-const WEEKDAYS = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 export default function AdminPage() {
   const [password, setPassword] = useState('');
@@ -47,14 +46,26 @@ export default function AdminPage() {
   const [dailyNote, setDailyNote] = useState('');
 
   const fetchData = useCallback(async (pwd: string) => {
-    const headers = { 'x-admin-password': pwd };
+    const cleanPwd = pwd.trim();
+    const headers = { 'x-admin-password': cleanPwd };
     const [bRes, wRes, dRes] = await Promise.all([
       fetch('/api/admin/bookings', { headers }),
       fetch('/api/admin/working-hours', { headers }),
       fetch('/api/admin/daily-hours', { headers }),
     ]);
     if (!bRes.ok) {
-      setError('Sai mật khẩu hoặc lỗi kết nối');
+      let apiError = '';
+      try {
+        const errBody = await bRes.json();
+        apiError = errBody?.error || '';
+      } catch {
+        apiError = '';
+      }
+      if (bRes.status === 401) {
+        setError('Invalid admin password');
+      } else {
+        setError(apiError ? `Server error: ${apiError}` : 'Server connection error');
+      }
       setAuthed(false);
       return;
     }
@@ -74,7 +85,7 @@ export default function AdminPage() {
   }
 
   async function handleCancel(id: string) {
-    if (!confirm('Xác nhận hủy lịch hẹn này?')) return;
+    if (!confirm('Cancel this appointment?')) return;
     await fetch('/api/admin/bookings', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json', 'x-admin-password': password },
@@ -115,7 +126,7 @@ export default function AdminPage() {
   }
 
   async function handleDeleteDailyHours(targetDate: string) {
-    if (!confirm('Xóa cấu hình ngày đặc biệt này?')) return;
+    if (!confirm('Delete this day-specific override?')) return;
     await fetch('/api/admin/daily-hours', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json', 'x-admin-password': password },
@@ -138,7 +149,7 @@ export default function AdminPage() {
           <form onSubmit={handleLogin} className="space-y-4">
             <input
               type="password"
-              placeholder="Mật khẩu admin"
+              placeholder="Admin password"
               value={password}
               onChange={e => setPassword(e.target.value)}
               className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
@@ -147,7 +158,7 @@ export default function AdminPage() {
               type="submit"
               className="w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition"
             >
-              Đăng nhập
+              Sign in
             </button>
           </form>
         </div>
@@ -163,7 +174,7 @@ export default function AdminPage() {
           onClick={() => setAuthed(false)}
           className="text-sm text-gray-500 hover:text-red-500 transition"
         >
-          Đăng xuất
+          Sign out
         </button>
       </div>
 
@@ -175,7 +186,7 @@ export default function AdminPage() {
             tab === 'bookings' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
           }`}
         >
-          📋 Lịch hẹn ({confirmedBookings.length})
+          📋 Appointments ({confirmedBookings.length})
         </button>
         <button
           onClick={() => setTab('hours')}
@@ -183,7 +194,7 @@ export default function AdminPage() {
             tab === 'hours' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
           }`}
         >
-          ⏰ Giờ làm việc
+          ⏰ Working Hours
         </button>
       </div>
 
@@ -202,20 +213,20 @@ export default function AdminPage() {
                 onClick={() => setFilterDate('')}
                 className="text-sm text-red-500 hover:underline"
               >
-                Xóa lọc
+                Clear filter
               </button>
             )}
             <button
               onClick={() => fetchData(password)}
               className="text-sm text-blue-500 hover:underline ml-auto"
             >
-              🔄 Làm mới
+              🔄 Refresh
             </button>
           </div>
 
           <div className="space-y-3">
             {filteredBookings.length === 0 && (
-              <p className="text-gray-400 text-center py-8">Không có lịch hẹn</p>
+              <p className="text-gray-400 text-center py-8">No appointments found</p>
             )}
             {filteredBookings.map(b => {
               const dateObj = new Date(
@@ -231,7 +242,7 @@ export default function AdminPage() {
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold truncate">{b.customer_name}</p>
                     <p className="text-sm text-gray-500 capitalize">
-                      {format(dateObj, "EEEE dd/MM/yyyy 'lúc' HH:mm", { locale: viLocale })}
+                      {format(dateObj, 'EEEE dd/MM/yyyy HH:mm')}
                     </p>
                     {b.customer_email && (
                       <p className="text-xs text-gray-400 truncate">{b.customer_email}</p>
@@ -248,14 +259,14 @@ export default function AdminPage() {
                           : 'bg-gray-100 text-gray-500'
                       }`}
                     >
-                      {b.status === 'confirmed' ? 'Đã xác nhận' : 'Đã hủy'}
+                      {b.status === 'confirmed' ? 'Confirmed' : 'Cancelled'}
                     </span>
                     {b.status === 'confirmed' && (
                       <button
                         onClick={() => handleCancel(b.id)}
                         className="text-red-500 hover:text-red-700 text-sm font-medium transition"
                       >
-                        Hủy
+                        Cancel
                       </button>
                     )}
                   </div>
@@ -269,7 +280,7 @@ export default function AdminPage() {
       {tab === 'hours' && (
         <div className="space-y-6">
           <div className="space-y-3">
-            <h2 className="text-lg font-semibold">Giờ làm việc mặc định theo thứ</h2>
+            <h2 className="text-lg font-semibold">Default weekly working hours</h2>
             {workingHours.map(wh => (
               <div key={wh.weekday} className="bg-white rounded-xl shadow p-4 flex items-center gap-4 flex-wrap">
                 <div className="w-24 font-medium text-gray-700">{WEEKDAYS[wh.weekday]}</div>
@@ -280,7 +291,7 @@ export default function AdminPage() {
                     onChange={() => handleUpdateHours({ ...wh, is_active: !wh.is_active })}
                     className="w-4 h-4 accent-blue-600"
                   />
-                  <span className="text-sm text-gray-600">Làm việc</span>
+                  <span className="text-sm text-gray-600">Working day</span>
                 </label>
                 {wh.is_active && (
                   <div className="flex items-center gap-2">
@@ -310,10 +321,10 @@ export default function AdminPage() {
           </div>
 
           <div className="bg-white rounded-xl shadow p-4">
-            <h2 className="text-lg font-semibold mb-4">Cấu hình giờ rảnh theo ngày cụ thể</h2>
+            <h2 className="text-lg font-semibold mb-4">Date-specific availability override</h2>
             <form onSubmit={handleSaveDailyHours} className="grid md:grid-cols-6 gap-3 items-end">
               <div className="md:col-span-2">
-                <label className="block text-sm text-gray-600 mb-1">Ngày</label>
+                <label className="block text-sm text-gray-600 mb-1">Date</label>
                 <input
                   required
                   type="date"
@@ -323,7 +334,7 @@ export default function AdminPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-600 mb-1">Từ giờ</label>
+                <label className="block text-sm text-gray-600 mb-1">Start</label>
                 <select
                   value={dailyStartHour}
                   onChange={e => setDailyStartHour(Number(e.target.value))}
@@ -335,7 +346,7 @@ export default function AdminPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-gray-600 mb-1">Đến giờ</label>
+                <label className="block text-sm text-gray-600 mb-1">End</label>
                 <select
                   value={dailyEndHour}
                   onChange={e => setDailyEndHour(Number(e.target.value))}
@@ -347,11 +358,11 @@ export default function AdminPage() {
                 </select>
               </div>
               <div className="md:col-span-2">
-                <label className="block text-sm text-gray-600 mb-1">Ghi chú (tùy chọn)</label>
+                <label className="block text-sm text-gray-600 mb-1">Note (optional)</label>
                 <input
                   value={dailyNote}
                   onChange={e => setDailyNote(e.target.value)}
-                  placeholder="Ví dụ: Làm nửa ngày"
+                  placeholder="Example: Half day only"
                   className="w-full border rounded px-3 py-2 text-sm"
                 />
               </div>
@@ -362,19 +373,19 @@ export default function AdminPage() {
                   onChange={e => setDailyIsActive(e.target.checked)}
                   className="w-4 h-4 accent-blue-600"
                 />
-                Có làm việc trong ngày này
+                Open for bookings on this date
               </label>
               <button
                 type="submit"
                 className="md:col-span-2 bg-blue-600 text-white rounded px-4 py-2 text-sm font-medium hover:bg-blue-700"
               >
-                Lưu cấu hình ngày
+                Save date override
               </button>
             </form>
 
             <div className="mt-4 space-y-2">
               {dailyHours.length === 0 && (
-                <p className="text-sm text-gray-400">Chưa có cấu hình riêng theo ngày.</p>
+                <p className="text-sm text-gray-400">No date-specific overrides yet.</p>
               )}
               {dailyHours.map(item => (
                 <div key={item.target_date} className="flex items-center justify-between text-sm border rounded-lg px-3 py-2">
@@ -383,7 +394,7 @@ export default function AdminPage() {
                     <span className="text-gray-500 ml-2">
                       {item.is_active
                         ? `${String(item.start_hour).padStart(2, '0')}:00 - ${String(item.end_hour).padStart(2, '0')}:00`
-                        : 'Nghỉ cả ngày'}
+                        : 'Closed all day'}
                     </span>
                     {item.note && <span className="text-gray-400 ml-2">({item.note})</span>}
                   </div>
@@ -391,7 +402,7 @@ export default function AdminPage() {
                     onClick={() => handleDeleteDailyHours(item.target_date)}
                     className="text-red-500 hover:text-red-700"
                   >
-                    Xóa
+                    Delete
                   </button>
                 </div>
               ))}
@@ -399,7 +410,7 @@ export default function AdminPage() {
           </div>
 
           <p className="text-xs text-gray-400 mt-2">
-            * Mặc định hệ thống dùng giờ theo thứ trong tuần. Nếu có cấu hình theo ngày cụ thể, hệ thống sẽ ưu tiên theo ngày đó.
+            * The system uses weekly hours by default. If a date-specific override exists, it takes priority for that date.
           </p>
         </div>
       )}
