@@ -20,6 +20,13 @@ export async function GET(request: NextRequest) {
 
   if (blocked) return NextResponse.json({ slots: [] });
 
+  // Daily override takes precedence over weekday config.
+  const { data: dailyWh } = await db
+    .from('daily_working_hours')
+    .select('*')
+    .eq('target_date', date)
+    .maybeSingle();
+
   // Get working hours for this weekday
   const { data: wh } = await db
     .from('working_hours')
@@ -35,7 +42,14 @@ export async function GET(request: NextRequest) {
     .eq('status', 'confirmed');
 
   const bookedHours = (bookings || []).map((b: { appointment_hour: number }) => b.appointment_hour);
-  const slots = generateSlots(wh as WorkingHours | null, bookedHours);
+  const effectiveWh =
+    dailyWh && typeof dailyWh.start_hour === 'number' && typeof dailyWh.end_hour === 'number'
+      ? {
+          ...dailyWh,
+          weekday,
+        }
+      : wh;
+  const slots = generateSlots(effectiveWh as WorkingHours | null, bookedHours);
 
   return NextResponse.json({ slots });
 }

@@ -18,6 +18,15 @@ export interface WorkingHours {
   is_active: boolean;
 }
 
+export interface DailyWorkingHours {
+  id: number;
+  target_date: string; // YYYY-MM-DD
+  start_hour: number;
+  end_hour: number; // exclusive
+  is_active: boolean;
+  note: string | null;
+}
+
 export interface BlockedDay {
   id: number;
   blocked_date: string; // YYYY-MM-DD

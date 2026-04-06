@@ -20,6 +20,16 @@ create table working_hours (
   is_active boolean not null default true
 );
 
+-- Daily override config (specific date has custom hours)
+create table daily_working_hours (
+  id serial primary key,
+  target_date date not null unique,
+  start_hour integer not null,
+  end_hour integer not null,       -- exclusive
+  is_active boolean not null default true,
+  note text
+);
+
 -- Insert defaults: Mon-Sat 9:00-18:00, Sunday off
 insert into working_hours (weekday, start_hour, end_hour, is_active) values
 (0, 9, 18, false),  -- Sunday
@@ -40,11 +50,15 @@ create table blocked_days (
 -- Enable RLS
 alter table bookings enable row level security;
 alter table working_hours enable row level security;
+alter table daily_working_hours enable row level security;
 alter table blocked_days enable row level security;
 
 -- Public can read working_hours and blocked_days
 create policy "Public read working_hours"
   on working_hours for select to anon using (true);
+
+create policy "Public read daily_working_hours"
+  on daily_working_hours for select to anon using (true);
 
 create policy "Public read blocked_days"
   on blocked_days for select to anon using (true);
